@@ -20,22 +20,22 @@ if ( "${MacroModule}" STREQUAL "PartialMap" )
 #
 
 if ( NOT EXISTS "${PROJECT_SOURCE_DIR}/kll/kll.py" )
-	message ( STATUS "Downloading latest kll version:" )
+        message ( STATUS "Downloading latest kll version:" )
 
-	# Make sure git is available
-	find_package ( Git REQUIRED )
+        # Make sure git is available
+        find_package ( Git REQUIRED )
 
-	# Clone kll git repo
-	execute_process ( COMMAND ${GIT_EXECUTABLE} clone https://github.com/kiibohd/kll.git
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-	)
+        # Clone kll git repo
+        execute_process ( COMMAND ${GIT_EXECUTABLE} clone https://github.com/kiibohd/kll.git
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        )
 elseif ( REFRESH_KLL ) # Otherwise attempt to update the repo
-	message ( STATUS "Checking for latest kll version:" )
+        message ( STATUS "Checking for latest kll version:" )
 
-	# Clone kll git repo
-	execute_process ( COMMAND ${GIT_EXECUTABLE} pull --rebase
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/kll
-	)
+        # Clone kll git repo
+        execute_process ( COMMAND ${GIT_EXECUTABLE} pull --rebase
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/kll
+        )
 endif () # kll/kll.py exists
 
 
@@ -48,8 +48,8 @@ endif () # kll/kll.py exists
 
 #| Add each of the detected capabilities.kll
 foreach ( filename ${ScanModule_KLL} ${MacroModule_KLL} ${OutputModule_KLL} ${DebugModule_KLL} )
-	set ( BaseMap_Args ${BaseMap_Args} ${filename} )
-	set ( KLL_DEPENDS ${KLL_DEPENDS} ${filename} )
+        set ( BaseMap_Args ${BaseMap_Args} ${filename} )
+        set ( KLL_DEPENDS ${KLL_DEPENDS} ${filename} )
 endforeach ()
 
 #| If set BaseMap cannot be found, use default map
@@ -57,65 +57,71 @@ set ( pathname "${PROJECT_SOURCE_DIR}/${ScanModulePath}" )
 
 string ( REPLACE " " ";" MAP_LIST ${BaseMap} ) # Change spaces to semicolons
 foreach ( MAP ${MAP_LIST} )
-	# Only check the Scan Module for BaseMap .kll files, default to defaultMap.kll
-	if ( NOT EXISTS ${pathname}/${MAP}.kll )
-		set ( BaseMap_Args ${BaseMap_Args} ${pathname}/defaultMap.kll )
-		set ( KLL_DEPENDS ${KLL_DEPENDS} ${pathname}/defaultMap.kll )
-	elseif ( EXISTS "${pathname}/${MAP}.kll" )
-		set ( BaseMap_Args ${BaseMap_Args} ${pathname}/${MAP}.kll )
-		set ( KLL_DEPENDS ${KLL_DEPENDS} ${pathname}/${MAP}.kll )
-	else ()
-		message ( FATAL " Could not find '${MAP}.kll' BaseMap in Scan module directory" )
-	endif ()
+        # Only check the Scan Module for BaseMap .kll files, default to defaultMap.kll
+        if ( NOT EXISTS ${pathname}/${MAP}.kll )
+                set ( BaseMap_Args ${BaseMap_Args} ${pathname}/defaultMap.kll )
+                set ( KLL_DEPENDS ${KLL_DEPENDS} ${pathname}/defaultMap.kll )
+        elseif ( EXISTS "${pathname}/${MAP}.kll" )
+                set ( BaseMap_Args ${BaseMap_Args} ${pathname}/${MAP}.kll )
+                set ( KLL_DEPENDS ${KLL_DEPENDS} ${pathname}/${MAP}.kll )
+        else ()
+                message ( FATAL " Could not find '${MAP}.kll' BaseMap in Scan module directory" )
+        endif ()
 endforeach ()
 
 #| Configure DefaultMap if specified
 if ( NOT "${DefaultMap}" STREQUAL "" )
-	set ( DefaultMap_Args -d )
+    set ( DefaultMap_Args -d )
 
-	string ( REPLACE " " ";" MAP_LIST ${DefaultMap} ) # Change spaces to semicolons
-	foreach ( MAP ${MAP_LIST} )
-		# Check if kll file is in build directory, otherwise default to layout directory
-		if ( EXISTS "${PROJECT_BINARY_DIR}/${MAP}.kll" )
-			set ( DefaultMap_Args ${DefaultMap_Args} ${MAP}.kll )
-			set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_BINARY_DIR}/${MAP}.kll )
-		elseif ( EXISTS "${PROJECT_SOURCE_DIR}/kll/layouts/${MAP}.kll" )
-			set ( DefaultMap_Args ${DefaultMap_Args} ${PROJECT_SOURCE_DIR}/kll/layouts/${MAP}.kll )
-			set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_SOURCE_DIR}/kll/layouts/${MAP}.kll )
-		else ()
-			message ( FATAL " Could not find '${MAP}.kll' DefaultMap" )
-		endif ()
-	endforeach ()
+    string ( REPLACE " " ";" MAP_LIST ${DefaultMap} ) # Change spaces to semicolons
+    foreach ( MAP ${MAP_LIST} )
+        # Check if kll file is in build directory, otherwise default to layout directory
+        if ( EXISTS "${PROJECT_BINARY_DIR}/${MAP}.kll" )
+            set ( DefaultMap_Args ${DefaultMap_Args} ${MAP}.kll )
+            set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_BINARY_DIR}/${MAP}.kll )
+        elseif ( EXISTS "${PROJECT_SOURCE_DIR}/kll/layouts/${MAP}.kll" )
+            set ( DefaultMap_Args ${DefaultMap_Args} ${PROJECT_SOURCE_DIR}/kll/layouts/${MAP}.kll )
+            set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_SOURCE_DIR}/kll/layouts/${MAP}.kll )
+        elseif ( EXISTS "${PROJECT_SOURCE_DIR}/Layouts/${MAP}.kll" )
+            set ( PartialMap_Args ${PartialMap_Args} ${PROJECT_SOURCE_DIR}/Layouts/${MAP}.kll )
+            set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_SOURCE_DIR}/Layouts/${MAP}.kll )
+        else ()
+            message ( FATAL " Could not find '${MAP}.kll' DefaultMap" )
+        endif ()
+    endforeach ()
 endif ()
 
 #| Configure PartialMaps if specified
 if ( NOT "${PartialMaps}" STREQUAL "" )
-	# For each partial layer
-	foreach ( MAP ${PartialMaps} )
-		set ( PartialMap_Args ${PartialMap_Args} -p )
+    # For each partial layer
+    foreach ( MAP ${PartialMaps} )
+        set ( PartialMap_Args ${PartialMap_Args} -p )
 
-		# Combine each layer
-		string ( REPLACE " " ";" MAP_LIST ${MAP} ) # Change spaces to semicolons
-		foreach ( MAP_PART ${MAP_LIST} )
-			# Check if kll file is in build directory, otherwise default to layout directory
-			if ( EXISTS "${PROJECT_BINARY_DIR}/${MAP_PART}.kll" )
-				set ( PartialMap_Args ${PartialMap_Args} ${MAP_PART}.kll )
-				set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_BINARY_DIR}/${MAP_PART}.kll )
-			elseif ( EXISTS "${PROJECT_SOURCE_DIR}/kll/layouts/${MAP_PART}.kll" )
-				set ( PartialMap_Args ${PartialMap_Args} ${PROJECT_SOURCE_DIR}/kll/layouts/${MAP_PART}.kll )
-				set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_SOURCE_DIR}/kll/layouts/${MAP_PART}.kll )
-			else ()
-				message ( FATAL " Could not find '${MAP_PART}.kll' PartialMap" )
-			endif ()
-		endforeach ()
-	endforeach ()
+        # Combine each layer
+        string ( REPLACE " " ";" MAP_LIST ${MAP} ) # Change spaces to semicolons
+        foreach ( MAP_PART ${MAP_LIST} )
+            # Check if kll file is in build directory, otherwise default to layout directory
+            if ( EXISTS "${PROJECT_BINARY_DIR}/${MAP_PART}.kll" )
+                set ( PartialMap_Args ${PartialMap_Args} ${MAP_PART}.kll )
+                set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_BINARY_DIR}/${MAP_PART}.kll )
+            elseif ( EXISTS "${PROJECT_SOURCE_DIR}/kll/layouts/${MAP_PART}.kll" )
+                set ( PartialMap_Args ${PartialMap_Args} ${PROJECT_SOURCE_DIR}/kll/layouts/${MAP_PART}.kll )
+                set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_SOURCE_DIR}/kll/layouts/${MAP_PART}.kll )
+            elseif ( EXISTS "${PROJECT_SOURCE_DIR}/Layouts/${MAP_PART}.kll" )
+                set ( PartialMap_Args ${PartialMap_Args} ${PROJECT_SOURCE_DIR}/Layouts/${MAP_PART}.kll )
+                set ( KLL_DEPENDS ${KLL_DEPENDS} ${PROJECT_SOURCE_DIR}/Layouts/${MAP_PART}.kll )
+            else ()
+                message ( FATAL " Could not find '${MAP_PART}.kll' PartialMap" )
+            endif ()
+        endforeach ()
+    endforeach ()
 endif ()
 
 
 #| Print list of layout sources used
 message ( STATUS "Detected Layout Files:" )
 foreach ( filename ${KLL_DEPENDS} )
-	message ( "${filename}" )
+    message ( "${filename}" )
 endforeach ()
 
 
@@ -133,15 +139,15 @@ set ( kll_output    --outputs ${kll_outputname} )
 #| KLL Cmd
 set ( kll_cmd ${PROJECT_SOURCE_DIR}/kll/kll.py ${BaseMap_Args} ${DefaultMap_Args} ${PartialMap_Args} ${kll_backend} ${kll_template} ${kll_output} )
 add_custom_command ( OUTPUT ${kll_outputname}
-	COMMAND ${kll_cmd}
-	DEPENDS ${KLL_DEPENDS}
-	COMMENT "Generating KLL Layout"
+        COMMAND ${kll_cmd}
+        DEPENDS ${KLL_DEPENDS}
+        COMMENT "Generating KLL Layout"
 )
 
 #| KLL Regen Convenience Target
 add_custom_target ( kll_regen
-	COMMAND ${kll_cmd}
-	COMMENT "Re-generating KLL Layout"
+        COMMAND ${kll_cmd}
+        COMMENT "Re-generating KLL Layout"
 )
 
 #| Append generated file to required sources so it becomes a dependency in the main build
